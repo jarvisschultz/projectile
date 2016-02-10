@@ -211,6 +211,12 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-use-gtags nil
+  "If true, Projectile will use GNU global via `ggtags-mode'
+instead of ctags/etags for generating and finding tags."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files."
   :group 'projectile
@@ -363,7 +369,7 @@ If a buffer is in the list projectile will ignore
 it for functions working with buffers."
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile . "0.12.0"))
+  :package-version '(projectile . "0.13.0"))
 
 (defcustom projectile-find-file-hook nil
   "Hooks run when a file is opened with `projectile-find-file'."
@@ -1949,7 +1955,8 @@ regular expression."
 (defun projectile-regenerate-tags ()
   "Regenerate the project's [e|g]tags."
   (interactive)
-  (if (boundp 'ggtags-mode)
+  (if (and (boundp 'ggtags-mode)
+        projectile-use-gtags)
       (progn
         (let* ((ggtags-project-root (projectile-project-root))
                (default-directory ggtags-project-root))
@@ -1985,12 +1992,13 @@ regular expression."
   (projectile-visit-project-tags-table)
   ;; Auto-discover the user's preference for tags
   (let ((find-tag-fn (cond
-                      ((fboundp 'ggtags-find-tag-dwim)
-                       'ggtags-find-tag-dwim)
-                      ((fboundp 'etags-select-find-tag)
-                       'etags-select-find-tag)
-                      (t
-                       'find-tag))))
+                       ((and (fboundp 'ggtags-find-tag-dwim)
+                          projectile-use-gtags)
+                         'ggtags-find-tag-dwim)
+                       ((fboundp 'etags-select-find-tag)
+                         'etags-select-find-tag)
+                       (t
+                         'find-tag))))
     (call-interactively find-tag-fn)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
@@ -2827,7 +2835,7 @@ entirely."
   :group 'projectile
   :type 'sexp
   :risky t
-  :package-version '(projectile "0.12.0"))
+  :package-version '(projectile "0.13.0"))
 
 ;;;###autoload
 (define-minor-mode projectile-mode
