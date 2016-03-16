@@ -20,7 +20,7 @@
 ### Changes
 
 * Prefer ag's internal .gitignore parsing.
-* Always use external find-tag implementations.
+* Added variable to control use of external find-tag implementations.
 
 ### Bugs fixed
 

@@ -2031,12 +2031,6 @@ regular expression."
                   'find-tag)))
             (t
               'find-tag))))
-;;             ((eq projectile-tags-backend 'etags)
-;;               ((if (fboundp 'etags-select-find-tag)
-;;                  ('etags-select-find-tag)
-;;                  (user-error "projectile-tags-backend set to etags\
-;; , but etags-select-find-tag not found")
-;;                    ('find-tag)))))))
     (call-interactively find-tag-fn)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
