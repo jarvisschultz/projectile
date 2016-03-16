@@ -211,11 +211,26 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-use-gtags nil
-  "If true, Projectile will use GNU global via `ggtags-mode'
-instead of ctags/etags for generating and finding tags."
+(defcustom projectile-tags-backend 'auto
+  "The tag backend that Projectile should use.
+
+If set to 'auto', `projectile-find-tag' will automatically choose
+which backend to use. Preference order is ggtags -> etags-select
+-> find-tag. Variable can also be set to specify which backend to
+use. If selected backend is unavailable, fall back to `find-tag'.
+
+If this variable is set to 'auto' and ggtags is available, or if
+set to 'ggtags', then ggtags will be used for
+`projectile-regenerate-tags'. For all other settings
+`projectile-tags-command' will be used.
+"
   :group 'projectile
-  :type 'boolean)
+  :type '(radio
+          (const :tag "auto" auto)
+          (const :tag "ggtags" ggtags)
+          (const :tag "etags" etags-select)
+          (const :tag "standard" find-tag)
+           ))
 
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files."
@@ -369,7 +384,7 @@ If a buffer is in the list projectile will ignore
 it for functions working with buffers."
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile . "0.13.0"))
+  :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-find-file-hook nil
   "Hooks run when a file is opened with `projectile-find-file'."
@@ -1956,7 +1971,8 @@ regular expression."
   "Regenerate the project's [e|g]tags."
   (interactive)
   (if (and (boundp 'ggtags-mode)
-        projectile-use-gtags)
+        (or (eq projectile-tags-backend 'auto)
+          (eq projectile-tags-backend 'ggtags)))
       (progn
         (let* ((ggtags-project-root (projectile-project-root))
                (default-directory ggtags-project-root))
@@ -1991,14 +2007,36 @@ regular expression."
   (interactive)
   (projectile-visit-project-tags-table)
   ;; Auto-discover the user's preference for tags
-  (let ((find-tag-fn (cond
-                       ((and (fboundp 'ggtags-find-tag-dwim)
-                          projectile-use-gtags)
-                         'ggtags-find-tag-dwim)
-                       ((fboundp 'etags-select-find-tag)
-                         'etags-select-find-tag)
-                       (t
-                         'find-tag))))
+  (let ((find-tag-fn
+          (cond
+            ((eq projectile-tags-backend 'auto)
+              (cond
+                ((fboundp 'ggtags-find-tag-dwim)
+                  'ggtags-find-tag-dwim)
+                ((fboundp 'etags-select-find-tag)
+                  'etags-select-find-tag)
+                (t
+                  'find-tag)))
+            ((eq projectile-tags-backend 'ggtags)
+              (cond
+                ((fboundp 'ggtags-find-tag-dwim)
+                  'ggtags-find-tag-dwim)
+                (t
+                  'find-tag)))
+            ((eq projectile-tags-backend 'etags)
+              (cond
+                ((fboundp 'etags-select-find-tag)
+                  'etags-select-find-tag)
+                (t
+                  'find-tag)))
+            (t
+              'find-tag))))
+;;             ((eq projectile-tags-backend 'etags)
+;;               ((if (fboundp 'etags-select-find-tag)
+;;                  ('etags-select-find-tag)
+;;                  (user-error "projectile-tags-backend set to etags\
+;; , but etags-select-find-tag not found")
+;;                    ('find-tag)))))))
     (call-interactively find-tag-fn)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
@@ -2835,7 +2873,7 @@ entirely."
   :group 'projectile
   :type 'sexp
   :risky t
-  :package-version '(projectile "0.13.0"))
+  :package-version '(projectile "0.12.0"))
 
 ;;;###autoload
 (define-minor-mode projectile-mode
