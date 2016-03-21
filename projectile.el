@@ -222,15 +222,14 @@ use. If selected backend is unavailable, fall back to `find-tag'.
 If this variable is set to 'auto' and ggtags is available, or if
 set to 'ggtags', then ggtags will be used for
 `projectile-regenerate-tags'. For all other settings
-`projectile-tags-command' will be used.
-"
+`projectile-tags-command' will be used."
   :group 'projectile
   :type '(radio
           (const :tag "auto" auto)
           (const :tag "ggtags" ggtags)
           (const :tag "etags" etags-select)
-          (const :tag "standard" find-tag)
-           ))
+          (const :tag "standard" find-tag))
+  :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files."
@@ -804,7 +803,7 @@ The current directory is assumed to be the project's root otherwise."
                       value)))
                 projectile-project-root-files-functions)
         (if projectile-require-project-root
-            (error "You're not in a project")
+            (error "You're not in a project")`
           default-directory))))
 
 (defun projectile-file-truename (file-name)
@@ -1971,8 +1970,7 @@ regular expression."
   "Regenerate the project's [e|g]tags."
   (interactive)
   (if (and (boundp 'ggtags-mode)
-        (or (eq projectile-tags-backend 'auto)
-          (eq projectile-tags-backend 'ggtags)))
+       (memq projectile-tags-backend '(auto ggtags)))
       (progn
         (let* ((ggtags-project-root (projectile-project-root))
                (default-directory ggtags-project-root))
@@ -2001,37 +1999,66 @@ regular expression."
         (with-demoted-errors "Error loading tags-file: %s"
           (visit-tags-table tags-file t))))))
 
+(defun projectile-determine-find-tag-fn ()
+  "Determine which function to use for a call to `projectile-find-tag'."
+  (cond
+    ((eq projectile-tags-backend 'auto)
+      (cond
+        ((fboundp 'ggtags-find-tag-dwim)
+          'ggtags-find-tag-dwim)
+        ((fboundp 'etags-select-find-tag)
+          'etags-select-find-tag)
+        (t
+          'find-tag)))
+    ((eq projectile-tags-backend 'ggtags)
+      (cond
+        ((fboundp 'ggtags-find-tag-dwim)
+          'ggtags-find-tag-dwim)
+        (t
+          'find-tag)))
+    ((eq projectile-tags-backend 'etags)
+      (cond
+        ((fboundp 'etags-select-find-tag)
+          'etags-select-find-tag)
+        (t
+          'find-tag)))
+    (t
+      'find-tag)))
+
+(defun projectile-determine-find-tag-fn-two ()
+  "Determine which function to use for a call to `projectile-find-tag'."
+  (cond
+    ((eq projectile-tags-backend 'auto)
+      (cond
+        ((fboundp 'ggtags-find-tag-dwim)
+          'ggtags-find-tag-dwim)
+        ((fboundp 'etags-select-find-tag)
+          'etags-select-find-tag)
+        (t
+          'find-tag)))
+    ((eq projectile-tags-backend 'ggtags)
+      (cond
+        ((fboundp 'ggtags-find-tag-dwim)
+          'ggtags-find-tag-dwim)
+        (t
+          'find-tag)))
+    ((eq projectile-tags-backend 'etags)
+      (cond
+        ((fboundp 'etags-select-find-tag)
+          'etags-select-find-tag)
+        (t
+          'find-tag)))
+    (t
+      'find-tag)))
+
 ;;;###autoload
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
   (projectile-visit-project-tags-table)
   ;; Auto-discover the user's preference for tags
-  (let ((find-tag-fn
-          (cond
-            ((eq projectile-tags-backend 'auto)
-              (cond
-                ((fboundp 'ggtags-find-tag-dwim)
-                  'ggtags-find-tag-dwim)
-                ((fboundp 'etags-select-find-tag)
-                  'etags-select-find-tag)
-                (t
-                  'find-tag)))
-            ((eq projectile-tags-backend 'ggtags)
-              (cond
-                ((fboundp 'ggtags-find-tag-dwim)
-                  'ggtags-find-tag-dwim)
-                (t
-                  'find-tag)))
-            ((eq projectile-tags-backend 'etags)
-              (cond
-                ((fboundp 'etags-select-find-tag)
-                  'etags-select-find-tag)
-                (t
-                  'find-tag)))
-            (t
-              'find-tag))))
-    (call-interactively find-tag-fn)))
+  (let ((find-tag-fn (projectile-determine-find-tag-fn-two)))
+         (call-interactively find-tag-fn)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
