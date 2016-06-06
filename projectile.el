@@ -2212,42 +2212,13 @@ regular expression."
           'ggtags-find-tag-dwim)
         ((fboundp 'etags-select-find-tag)
           'etags-select-find-tag)
-        (t
-          'find-tag)))
-    ((eq projectile-tags-backend 'ggtags)
-      (cond
-        ((fboundp 'ggtags-find-tag-dwim)
-          'ggtags-find-tag-dwim)
-        (t
-          'find-tag)))
-    ((eq projectile-tags-backend 'etags)
-      (cond
-        ((fboundp 'etags-select-find-tag)
-          'etags-select-find-tag)
-        (t
-          'find-tag)))
-    (t
-      'find-tag)))
-
-(defun projectile-determine-find-tag-fn-two ()
-  "Determine which function to use for a call to `projectile-find-tag'."
-  (cond
-    ((eq projectile-tags-backend 'auto)
-      (cond
-        ((fboundp 'ggtags-find-tag-dwim)
-          'ggtags-find-tag-dwim)
-        ((fboundp 'etags-select-find-tag)
-          'etags-select-find-tag)
         (t 'find-tag)))
     ((eq projectile-tags-backend 'ggtags)
       (if (fboundp 'ggtags-find-tag-dwim)
         'ggtags-find-tag-dwim 'find-tag))
-    ((eq projectile-tags-backend 'etags)
+    ((eq projectile-tags-backend 'etags-select)
       (if (fboundp 'etags-select-find-tag)
-        (progn
-          (message "etags backend %d" 1)
-          'etags-select-find-tag)
-        'find-tag))
+        'etags-select-find-tag 'find-tag))
     (t 'find-tag)))
 
 ;;;###autoload
@@ -2256,7 +2227,7 @@ regular expression."
   (interactive)
   (projectile-visit-project-tags-table)
   ;; Auto-discover the user's preference for tags
-  (let ((find-tag-fn (projectile-determine-find-tag-fn-two)))
+  (let ((find-tag-fn (projectile-determine-find-tag-fn)))
     (message "Find tag: %s" find-tag-fn)
     (call-interactively find-tag-fn)))
 
